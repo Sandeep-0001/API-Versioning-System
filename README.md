@@ -94,5 +94,3 @@ The UI uses a custom "Bold" personality theme:
 - **Primary Text**: Dark Green (`#1A3C40`)
 - **Accents**: Terracotta (`#E67E51`) & Mustard (`#E6B325`)
 
-## 👥 Contributors
-- **Saksham Kumar** - saksham.kumar_cs23@gla.ac.in
