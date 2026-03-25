@@ -2,7 +2,7 @@
 
 A complete full-stack solution demonstrating industry-standard API versioning strategies, backward compatibility, and smooth data migration.
 
-## 🚀 Overview
+##  Overview
 This project implements a robust **API Versioning System** that allows multiple API versions (V1 and V2) to coexist. It features a **Node.js/Express backend** with distinct versioned routes and a **React frontend** that interacts with both versions simultaneously.
 
 Key capabilities include:
@@ -24,7 +24,7 @@ Key capabilities include:
 - **Styling**: Vanilla CSS (Custom Theme: Cream, Dark Green, Terracotta)
 - **HTTP Client**: Axios
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 API-Versioning-System/
@@ -65,7 +65,7 @@ npm run dev
 ```
 *Frontend runs on `http://localhost:5173`*
 
-## 💡 Key Features Guide
+## Key Features Guide
 
 ### API Versioning
 - **V1**: `POST /api/v1/users` - Accepts `{ "name": "John Doe", "email": "..." }`
@@ -88,7 +88,7 @@ cd backend
 node scripts/migrate_v1_to_v2.js
 ```
 
-## 🎨 Frontend Theme
+##  Frontend Theme
 The UI uses a custom "Bold" personality theme:
 - **Background**: Cream (`#FDF6E3`)
 - **Primary Text**: Dark Green (`#1A3C40`)
