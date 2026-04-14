@@ -38,7 +38,6 @@ function App() {
   const [v3Users, setV3Users] = useState([]);
   const [darkMode, setDarkMode] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState('v3');
-  const [rawResponse, setRawResponse] = useState(null);
   const [deprecationNotice, setDeprecationNotice] = useState('');
   
   const [v1FormData, setV1FormData] = useState({ name: '', email: '' });
@@ -72,8 +71,6 @@ function App() {
         v3: v3Res,
       }[selectedVersion];
 
-      setRawResponse(selectedResponse.data);
-
       const isDeprecated = String(selectedResponse.headers?.deprecation || '').toLowerCase() === 'true';
       if (isDeprecated) {
         const successor = selectedResponse.headers?.['x-api-successor-version'] || '/api/v3/users';
@@ -93,9 +90,8 @@ function App() {
   const handleV1Submit = async (e) => {
     e.preventDefault();
     try {
-      const response = await createUserV1(v1FormData);
+      await createUserV1(v1FormData);
       setV1FormData({ name: '', email: '' });
-      setRawResponse(response.data);
       fetchUsers();
       alert("V1 User Created!");
     } catch {
@@ -106,9 +102,8 @@ function App() {
   const handleV2Submit = async (e) => {
     e.preventDefault();
     try {
-      const response = await createUserV2(v2FormData);
+      await createUserV2(v2FormData);
       setV2FormData({ firstName: '', lastName: '', email: '' });
-      setRawResponse(response.data);
       fetchUsers();
       alert("V2 User Created!");
     } catch {
@@ -123,9 +118,8 @@ function App() {
         ...v3FormData,
         age: v3FormData.age === '' ? null : Number(v3FormData.age),
       };
-      const response = await createUserV3(payload);
+      await createUserV3(payload);
       setV3FormData({ fullName: '', email: '', age: '', phone: '' });
-      setRawResponse(response.data);
       fetchUsers();
       alert("V3 User Created!");
     } catch {
@@ -273,34 +267,15 @@ function App() {
             </div>
           </Card>
 
-          <Card title={`${selectedVersion.toUpperCase()} Users List`}>
-            <ul className="space-y-3">
-              {activeUsers.length === 0 && <p className="text-dark-green/50 dark:text-cream/50">No users found.</p>}
-              {activeUsers.map((user) => (
-                <li key={user._id} className="bg-white dark:bg-dark-green/30 p-4 rounded-lg shadow-sm border border-dark-green/5 dark:border-cream/5 transition-colors">
-                  {selectedVersion === 'v1' && (
-                    <>
-                      <div className="font-bold text-dark-green dark:text-cream">{user.name}</div>
-                      <div className="text-sm text-dark-green/70 dark:text-cream/70">{user.email}</div>
-                    </>
-                  )}
-                  {selectedVersion === 'v2' && (
-                    <>
-                      <div className="font-bold text-dark-green dark:text-cream">{user.firstName} {user.lastName}</div>
-                      <div className="text-sm text-dark-green/70 dark:text-cream/70">{user.email}</div>
-                    </>
-                  )}
-                  {selectedVersion === 'v3' && (
-                    <>
-                      <div className="font-bold text-dark-green dark:text-cream">{user.fullName}</div>
-                      <div className="text-sm text-dark-green/70 dark:text-cream/70">{user.email}</div>
-                      <div className="text-xs text-dark-green/70 dark:text-cream/70">Age: {user.age ?? 'N/A'} | Phone: {user.phone || 'N/A'}</div>
-                    </>
-                  )}
-                  <div className="text-xs mt-1 text-dark-green/60 dark:text-cream/60">ID: {user._id}</div>
-                </li>
-              ))}
-            </ul>
+          <Card title={`${selectedVersion.toUpperCase()} User Summary`}>
+            <div className="rounded-lg bg-dark-green/5 dark:bg-cream/5 p-4 space-y-2 text-sm">
+              <div className="text-dark-green dark:text-cream font-semibold">
+                Total records: {activeUsers.length}
+              </div>
+              <div className="text-dark-green/70 dark:text-cream/70">
+                Raw user details are hidden for all versions.
+              </div>
+            </div>
           </Card>
         </section>
 
@@ -332,14 +307,6 @@ function App() {
             </div>
           </Card>
 
-          <Card title="Raw JSON Response Viewer">
-            <p className="text-sm text-dark-green/60 dark:text-cream/60 mb-3">
-              Current version: <span className="font-mono font-bold">{selectedVersion.toUpperCase()}</span>
-            </p>
-            <pre className="w-full overflow-x-auto rounded-lg bg-dark-bg text-cream p-4 text-sm">
-              {JSON.stringify(rawResponse, null, 2)}
-            </pre>
-          </Card>
         </section>
       </main>
     </div>
