@@ -2,11 +2,13 @@ import React from 'react';
 
 const Card = ({ children, title, className = '' }) => {
   return (
-    <div className={`bg-white dark:bg-dark-green/50 rounded-2xl shadow-xl p-8 border border-dark-green/10 dark:border-cream/10 backdrop-blur-sm ${className}`}>
-      {title && <h3 className="text-2xl font-bold text-dark-green dark:text-cream mb-6">{title}</h3>}
+    <div className={`rounded-2xl border border-[color:var(--color-border-soft)] bg-white/90 p-7 shadow-[0_10px_40px_rgba(16,25,40,0.08)] backdrop-blur ${className}`}>
+      {title && <h3 className="mb-5 text-xl font-semibold text-[color:var(--color-ink)] sm:text-2xl">{title}</h3>}
       {children}
     </div>
   );
 };
 
 export default Card;
+
+

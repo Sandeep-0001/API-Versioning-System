@@ -1,12 +1,12 @@
 import React from 'react';
 
 const Button = ({ children, onClick, variant = 'primary', type = 'button', className = '' }) => {
-  const baseStyles = "px-6 py-3 rounded-full font-bold transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-1 cursor-pointer";
+  const baseStyles = "mt-1 rounded-xl px-6 py-3 font-semibold tracking-wide transition duration-200 hover:-translate-y-0.5 hover:shadow-lg cursor-pointer";
   
   const variants = {
-    primary: "bg-terracotta text-white hover:opacity-90",
-    secondary: "bg-mustard text-dark-green hover:opacity-90",
-    outline: "border-2 border-dark-green text-dark-green dark:border-cream dark:text-cream hover:bg-dark-green hover:text-white dark:hover:bg-cream dark:hover:text-dark-green"
+    primary: "bg-[color:var(--color-v1)] text-white",
+    secondary: "bg-[color:var(--color-v2)] text-[color:var(--color-ink)]",
+    outline: "bg-[color:var(--color-brand)] text-white"
   };
 
   return (
@@ -21,3 +21,5 @@ const Button = ({ children, onClick, variant = 'primary', type = 'button', class
 };
 
 export default Button;
+
+

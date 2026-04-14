@@ -17,18 +17,21 @@ const VERSION_CONFIG = {
     postEndpoint: 'POST /api/v1/users',
     getEndpoint: 'GET /api/v1/users',
     schema: 'name, email',
+    accent: 'u-border-v1',
   },
   v2: {
     label: 'Version 2',
     postEndpoint: 'POST /api/v2/users',
     getEndpoint: 'GET /api/v2/users',
     schema: 'firstName, lastName, email',
+    accent: 'u-border-v2',
   },
   v3: {
     label: 'Version 3',
     postEndpoint: 'POST /api/v3/users',
     getEndpoint: 'GET /api/v3/users',
     schema: 'fullName, email, age, phone',
+    accent: 'u-border-v3',
   },
 };
 
@@ -37,27 +40,23 @@ function App() {
   const [v2Users, setV2Users] = useState([]);
   const [v3Users, setV3Users] = useState([]);
   const [rawResponses, setRawResponses] = useState({ v1: null, v2: null, v3: null });
-  const [darkMode, setDarkMode] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState('v3');
   const [rawViewVersion, setRawViewVersion] = useState('v3');
   const [viewMode, setViewMode] = useState('split');
+  const [copiedVersion, setCopiedVersion] = useState('');
   const [deprecationNotice, setDeprecationNotice] = useState('');
-  
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   const [v1FormData, setV1FormData] = useState({ name: '', email: '' });
   const [v2FormData, setV2FormData] = useState({ firstName: '', lastName: '', email: '' });
   const [v3FormData, setV3FormData] = useState({ fullName: '', email: '', age: '', phone: '' });
 
-  // Toggle Dark Mode
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
-
   const fetchUsers = useCallback(async () => {
     try {
+      setIsLoading(true);
+      setErrorMessage('');
+
       const [v1Res, v2Res, v3Res] = await Promise.all([
         getUsersV1(),
         getUsersV2(),
@@ -82,12 +81,15 @@ function App() {
       const isDeprecated = String(selectedResponse.headers?.deprecation || '').toLowerCase() === 'true';
       if (isDeprecated) {
         const successor = selectedResponse.headers?.['x-api-successor-version'] || '/api/v3/users';
-        setDeprecationNotice(`⚠️ ${selectedVersion.toUpperCase()} is deprecated. Please use ${successor}.`);
+        setDeprecationNotice(`${selectedVersion.toUpperCase()} is deprecated. Use ${successor}.`);
       } else {
         setDeprecationNotice('');
       }
     } catch (error) {
-      console.error("Error fetching users", error);
+      console.error('Error fetching users', error);
+      setErrorMessage('Unable to fetch users at the moment.');
+    } finally {
+      setIsLoading(false);
     }
   }, [selectedVersion]);
 
@@ -105,9 +107,9 @@ function App() {
       await createUserV1(v1FormData);
       setV1FormData({ name: '', email: '' });
       fetchUsers();
-      alert("V1 User Created!");
+      alert('V1 user created.');
     } catch {
-      alert("Error creating V1 user");
+      alert('Error creating V1 user');
     }
   };
 
@@ -117,9 +119,9 @@ function App() {
       await createUserV2(v2FormData);
       setV2FormData({ firstName: '', lastName: '', email: '' });
       fetchUsers();
-      alert("V2 User Created!");
+      alert('V2 user created.');
     } catch {
-      alert("Error creating V2 user");
+      alert('Error creating V2 user');
     }
   };
 
@@ -133,9 +135,9 @@ function App() {
       await createUserV3(payload);
       setV3FormData({ fullName: '', email: '', age: '', phone: '' });
       fetchUsers();
-      alert("V3 User Created!");
+      alert('V3 user created.');
     } catch {
-      alert("Error creating V3 user");
+      alert('Error creating V3 user');
     }
   };
 
@@ -143,262 +145,345 @@ function App() {
   const activeMeta = VERSION_CONFIG[selectedVersion];
   const activeRawResponse = rawResponses[rawViewVersion];
 
+  const handleCopyRawJson = async () => {
+    if (!activeRawResponse || !navigator?.clipboard) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(activeRawResponse, null, 2));
+      setCopiedVersion(rawViewVersion);
+      setTimeout(() => setCopiedVersion(''), 1500);
+    } catch (error) {
+      console.error('Failed to copy raw JSON:', error);
+    }
+  };
+
+  const handleDownloadRawJson = () => {
+    if (!activeRawResponse) {
+      return;
+    }
+
+    const jsonText = JSON.stringify(activeRawResponse, null, 2);
+    const blob = new Blob([jsonText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${rawViewVersion}-users-response.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className={`min-h-screen p-8 transition-colors duration-300 bg-cream dark:bg-dark-bg`}>
-      <header className="max-w-6xl mx-auto mb-12 text-center relative">
-        <div className="absolute right-0 top-0">
-            <button 
-                onClick={() => setDarkMode(!darkMode)}
-                className="p-2 rounded-full bg-dark-green text-cream dark:bg-cream dark:text-dark-green font-bold text-sm shadow-lg transition-transform hover:scale-105"
-            >
-                {darkMode ? '☀️ Light' : '🌙 Dark'}
-            </button>
-        </div>
-        <h1 className="text-5xl font-bold text-dark-green dark:text-cream mb-4 transition-colors">API Versioning System</h1>
-        <p className="text-xl text-dark-green/80 dark:text-cream/80 transition-colors">Demonstrating Backward Compatibility & Evolution</p>
+    <div className="min-h-screen u-bg-surface u-text-ink">
+      <div className="premium-bg relative overflow-hidden">
+        <div className="pointer-events-none absolute -left-16 -top-24 h-64 w-64 rounded-full u-bg-glow-a blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 top-20 h-72 w-72 rounded-full u-bg-glow-b blur-3xl" />
 
-        <div className="mt-8 max-w-md mx-auto text-left">
-          <label htmlFor="version-selector" className="block text-dark-green dark:text-cream font-bold mb-2">
-            Select Version
-          </label>
-          <select
-            id="version-selector"
-            value={selectedVersion}
-            onChange={(e) => setSelectedVersion(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border-2 border-dark-green/20 dark:border-cream/20 bg-white/80 dark:bg-black/30 text-dark-green dark:text-cream font-semibold"
-          >
-            <option value="v1">v1</option>
-            <option value="v2">v2</option>
-            <option value="v3">v3</option>
-          </select>
-        </div>
+        <div className="relative mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:px-10">
+          <header className="mb-10 animate-fade-in-up">
+            <div className="inline-flex items-center rounded-full border u-border-soft bg-white/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] u-text-brand shadow-sm">
+              Enterprise API Evolution
+            </div>
+            <h1 className="mt-4 text-4xl font-semibold leading-tight sm:text-5xl">API Versioning Control Center</h1>
+            <p className="mt-3 max-w-3xl text-[15px] leading-relaxed u-text-muted sm:text-base">
+              A professional interface for creating versioned users, validating backward compatibility, and inspecting raw transport payloads.
+            </p>
+          </header>
 
-        <div className="mt-6 max-w-md mx-auto text-left">
-          <div className="block text-dark-green dark:text-cream font-bold mb-2">View Mode</div>
-          <div className="grid grid-cols-3 gap-2 rounded-xl bg-dark-green/10 dark:bg-cream/10 p-2">
-            {[
-              { key: 'formatted', label: 'Formatted' },
-              { key: 'raw', label: 'Raw JSON' },
-              { key: 'split', label: 'Split' },
-            ].map((mode) => (
-              <button
-                key={mode.key}
-                type="button"
-                aria-pressed={viewMode === mode.key}
-                onClick={() => setViewMode(mode.key)}
-                className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                  viewMode === mode.key
-                    ? 'bg-dark-green text-cream dark:bg-cream dark:text-dark-green'
-                    : 'text-dark-green dark:text-cream hover:bg-dark-green/10 dark:hover:bg-cream/10'
-                }`}
+          <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 animate-fade-in-up-delayed">
+            <div className="stat-chip">
+              <div className="stat-label">Active Version</div>
+              <div className="stat-value uppercase">{selectedVersion}</div>
+            </div>
+            <div className="stat-chip">
+              <div className="stat-label">V1 Records</div>
+              <div className="stat-value">{v1Users.length}</div>
+            </div>
+            <div className="stat-chip">
+              <div className="stat-label">V2 Records</div>
+              <div className="stat-value">{v2Users.length}</div>
+            </div>
+            <div className="stat-chip">
+              <div className="stat-label">V3 Records</div>
+              <div className="stat-value">{v3Users.length}</div>
+            </div>
+          </section>
+
+          <div className="mb-8 grid gap-4 lg:grid-cols-2 animate-fade-in-up-delayed-2">
+            <div className="glass-panel">
+              <label htmlFor="version-selector" className="mb-2 block text-xs font-semibold uppercase tracking-wider u-text-muted">
+                Select API Version
+              </label>
+              <select
+                id="version-selector"
+                value={selectedVersion}
+                onChange={(e) => setSelectedVersion(e.target.value)}
+                className="w-full rounded-xl border u-border-soft bg-white px-4 py-3 text-sm font-semibold u-text-ink outline-none transition u-focus-border-brand"
               >
-                {mode.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {deprecationNotice && (
-          <div className="mt-6 max-w-3xl mx-auto rounded-xl border border-terracotta bg-terracotta/10 px-4 py-3 text-left text-dark-green dark:text-cream font-semibold">
-            {deprecationNotice}
-          </div>
-        )}
-      </header>
-
-      <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <section className="space-y-8">
-          <Card title={`${activeMeta.label} API`} className={`border-t-8 ${selectedVersion === 'v1' ? 'border-terracotta' : selectedVersion === 'v2' ? 'border-mustard' : 'border-dark-green'}`}>
-            {selectedVersion === 'v1' && (
-              <form onSubmit={handleV1Submit}>
-                <Input
-                  label="Full Name"
-                  name="name"
-                  value={v1FormData.name}
-                  onChange={(e) => setV1FormData({ ...v1FormData, name: e.target.value })}
-                  required
-                />
-                <Input
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={v1FormData.email}
-                  onChange={(e) => setV1FormData({ ...v1FormData, email: e.target.value })}
-                  required
-                />
-                <Button type="submit" variant="primary" className="w-full">Create V1 User</Button>
-              </form>
-            )}
-
-            {selectedVersion === 'v2' && (
-              <form onSubmit={handleV2Submit}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="First Name"
-                    name="firstName"
-                    value={v2FormData.firstName}
-                    onChange={(e) => setV2FormData({ ...v2FormData, firstName: e.target.value })}
-                    required
-                  />
-                  <Input
-                    label="Last Name"
-                    name="lastName"
-                    value={v2FormData.lastName}
-                    onChange={(e) => setV2FormData({ ...v2FormData, lastName: e.target.value })}
-                    required
-                  />
-                </div>
-                <Input
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={v2FormData.email}
-                  onChange={(e) => setV2FormData({ ...v2FormData, email: e.target.value })}
-                  required
-                />
-                <Button type="submit" variant="secondary" className="w-full">Create V2 User</Button>
-              </form>
-            )}
-
-            {selectedVersion === 'v3' && (
-              <form onSubmit={handleV3Submit}>
-                <Input
-                  label="Full Name"
-                  name="fullName"
-                  value={v3FormData.fullName}
-                  onChange={(e) => setV3FormData({ ...v3FormData, fullName: e.target.value })}
-                  required
-                />
-                <Input
-                  label="Email"
-                  name="email"
-                  type="email"
-                  value={v3FormData.email}
-                  onChange={(e) => setV3FormData({ ...v3FormData, email: e.target.value })}
-                  required
-                />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Input
-                    label="Age"
-                    name="age"
-                    type="number"
-                    value={v3FormData.age}
-                    onChange={(e) => setV3FormData({ ...v3FormData, age: e.target.value })}
-                    placeholder="Optional"
-                  />
-                  <Input
-                    label="Phone"
-                    name="phone"
-                    value={v3FormData.phone}
-                    onChange={(e) => setV3FormData({ ...v3FormData, phone: e.target.value })}
-                    placeholder="Optional"
-                  />
-                </div>
-                <Button type="submit" variant="outline" className="w-full">Create V3 User</Button>
-              </form>
-            )}
-
-            <div className="mt-5 rounded-lg bg-dark-green/5 dark:bg-cream/5 p-4 space-y-2 text-sm">
-              <div className="font-semibold text-dark-green dark:text-cream">API Endpoints</div>
-              <div className="font-mono text-dark-green/80 dark:text-cream/80">{activeMeta.postEndpoint}</div>
-              <div className="font-mono text-dark-green/80 dark:text-cream/80">{activeMeta.getEndpoint}</div>
-              <div className="text-dark-green/70 dark:text-cream/70">Schema: {activeMeta.schema}</div>
+                <option value="v1">v1</option>
+                <option value="v2">v2</option>
+                <option value="v3">v3</option>
+              </select>
             </div>
-          </Card>
 
-          {(viewMode === 'formatted' || viewMode === 'split') && (
-            <Card title={`${selectedVersion.toUpperCase()} Users List`}>
-              <ul className="space-y-3">
-                {activeUsers.length === 0 && <p className="text-dark-green/50 dark:text-cream/50">No users found.</p>}
-                {activeUsers.map((user) => (
-                  <li key={user._id} className="bg-white dark:bg-dark-green/30 p-4 rounded-lg shadow-sm border border-dark-green/5 dark:border-cream/5 transition-colors">
-                    {selectedVersion === 'v1' && (
-                      <>
-                        <div className="font-bold text-dark-green dark:text-cream">{user.name}</div>
-                        <div className="text-sm text-dark-green/70 dark:text-cream/70">{user.email}</div>
-                      </>
-                    )}
-                    {selectedVersion === 'v2' && (
-                      <>
-                        <div className="font-bold text-dark-green dark:text-cream">{user.firstName} {user.lastName}</div>
-                        <div className="text-sm text-dark-green/70 dark:text-cream/70">{user.email}</div>
-                      </>
-                    )}
-                    {selectedVersion === 'v3' && (
-                      <>
-                        <div className="font-bold text-dark-green dark:text-cream">{user.fullName}</div>
-                        <div className="text-sm text-dark-green/70 dark:text-cream/70">{user.email}</div>
-                        <div className="text-xs text-dark-green/70 dark:text-cream/70">Age: {user.age ?? 'N/A'} | Phone: {user.phone || 'N/A'}</div>
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-        </section>
-
-        <section className="space-y-8">
-          <Card title="Version Comparison">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-dark-green/20 dark:border-cream/20">
-                    <th className="py-2 pr-4 text-dark-green dark:text-cream">Version</th>
-                    <th className="py-2 pr-4 text-dark-green dark:text-cream">Fields</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b border-dark-green/10 dark:border-cream/10">
-                    <td className="py-2 pr-4 font-semibold">v1</td>
-                    <td className="py-2 pr-4">name, email</td>
-                  </tr>
-                  <tr className="border-b border-dark-green/10 dark:border-cream/10">
-                    <td className="py-2 pr-4 font-semibold">v2</td>
-                    <td className="py-2 pr-4">firstName, lastName, email</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 pr-4 font-semibold">v3</td>
-                    <td className="py-2 pr-4">fullName, email, age, phone</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </Card>
-
-          {(viewMode === 'raw' || viewMode === 'split') && (
-            <Card title="Raw JSON Responses">
-              <div className="mb-3 text-sm text-dark-green/80 dark:text-cream/80">
-                Inspect exact API payloads by version.
-              </div>
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {['v1', 'v2', 'v3'].map((version) => (
+            <div className="glass-panel">
+              <div className="mb-2 block text-xs font-semibold uppercase tracking-wider u-text-muted">View Mode</div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { key: 'formatted', label: 'Formatted' },
+                  { key: 'raw', label: 'Raw JSON' },
+                  { key: 'split', label: 'Split' },
+                ].map((mode) => (
                   <button
-                    key={version}
+                    key={mode.key}
                     type="button"
-                    aria-pressed={rawViewVersion === version}
-                    onClick={() => setRawViewVersion(version)}
-                    className={`rounded-lg px-3 py-2 text-sm font-semibold uppercase transition-colors ${
-                      rawViewVersion === version
-                        ? 'bg-dark-green text-cream dark:bg-cream dark:text-dark-green'
-                        : 'bg-dark-green/10 dark:bg-cream/10 text-dark-green dark:text-cream hover:bg-dark-green/20 dark:hover:bg-cream/20'
+                    aria-pressed={viewMode === mode.key}
+                    onClick={() => setViewMode(mode.key)}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      viewMode === mode.key
+                        ? 'u-bg-brand text-white shadow-md'
+                        : 'bg-white u-text-muted u-hover-text-ink'
                     }`}
                   >
-                    {version}
+                    {mode.label}
                   </button>
                 ))}
               </div>
-              <pre className="max-h-80 overflow-auto rounded-md bg-dark-green/90 text-cream text-xs p-3 whitespace-pre-wrap wrap-break-word">
-                {activeRawResponse
-                  ? JSON.stringify(activeRawResponse, null, 2)
-                  : 'No data loaded.'}
-              </pre>
-            </Card>
+            </div>
+          </div>
+
+          {deprecationNotice && (
+            <div className="mb-8 rounded-xl border u-border-v1 u-bg-v1-soft px-4 py-3 text-sm font-semibold u-text-brand animate-fade-in-up-delayed-2">
+              {deprecationNotice}
+            </div>
           )}
 
-        </section>
-      </main>
+          {errorMessage && (
+            <div className="mb-8 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
+              {errorMessage}
+            </div>
+          )}
+
+          <main className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <section className="space-y-8 animate-fade-in-up-delayed-2">
+              <Card title={`${activeMeta.label} API`} className={`border-l-4 ${activeMeta.accent}`}>
+                {selectedVersion === 'v1' && (
+                  <form onSubmit={handleV1Submit}>
+                    <Input
+                      label="Full Name"
+                      name="name"
+                      value={v1FormData.name}
+                      onChange={(e) => setV1FormData({ ...v1FormData, name: e.target.value })}
+                      required
+                    />
+                    <Input
+                      label="Email"
+                      name="email"
+                      type="email"
+                      value={v1FormData.email}
+                      onChange={(e) => setV1FormData({ ...v1FormData, email: e.target.value })}
+                      required
+                    />
+                    <Button type="submit" variant="primary" className="w-full">Create V1 User</Button>
+                  </form>
+                )}
+
+                {selectedVersion === 'v2' && (
+                  <form onSubmit={handleV2Submit}>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Input
+                        label="First Name"
+                        name="firstName"
+                        value={v2FormData.firstName}
+                        onChange={(e) => setV2FormData({ ...v2FormData, firstName: e.target.value })}
+                        required
+                      />
+                      <Input
+                        label="Last Name"
+                        name="lastName"
+                        value={v2FormData.lastName}
+                        onChange={(e) => setV2FormData({ ...v2FormData, lastName: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <Input
+                      label="Email"
+                      name="email"
+                      type="email"
+                      value={v2FormData.email}
+                      onChange={(e) => setV2FormData({ ...v2FormData, email: e.target.value })}
+                      required
+                    />
+                    <Button type="submit" variant="secondary" className="w-full">Create V2 User</Button>
+                  </form>
+                )}
+
+                {selectedVersion === 'v3' && (
+                  <form onSubmit={handleV3Submit}>
+                    <Input
+                      label="Full Name"
+                      name="fullName"
+                      value={v3FormData.fullName}
+                      onChange={(e) => setV3FormData({ ...v3FormData, fullName: e.target.value })}
+                      required
+                    />
+                    <Input
+                      label="Email"
+                      name="email"
+                      type="email"
+                      value={v3FormData.email}
+                      onChange={(e) => setV3FormData({ ...v3FormData, email: e.target.value })}
+                      required
+                    />
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      <Input
+                        label="Age"
+                        name="age"
+                        type="number"
+                        value={v3FormData.age}
+                        onChange={(e) => setV3FormData({ ...v3FormData, age: e.target.value })}
+                        placeholder="Optional"
+                      />
+                      <Input
+                        label="Phone"
+                        name="phone"
+                        value={v3FormData.phone}
+                        onChange={(e) => setV3FormData({ ...v3FormData, phone: e.target.value })}
+                        placeholder="Optional"
+                      />
+                    </div>
+                    <Button type="submit" variant="outline" className="w-full">Create V3 User</Button>
+                  </form>
+                )}
+
+                <div className="mt-6 rounded-xl border u-border-soft u-bg-neutral-soft p-4 text-sm">
+                  <div className="font-semibold u-text-brand">API Endpoints</div>
+                  <div className="mt-2 font-mono text-xs u-text-muted">{activeMeta.postEndpoint}</div>
+                  <div className="font-mono text-xs u-text-muted">{activeMeta.getEndpoint}</div>
+                  <div className="mt-2 u-text-muted">Schema: {activeMeta.schema}</div>
+                </div>
+              </Card>
+
+              {(viewMode === 'formatted' || viewMode === 'split') && (
+                <Card title={`${selectedVersion.toUpperCase()} Users List`}>
+                  {isLoading && <p className="text-sm u-text-muted">Loading users...</p>}
+                  {!isLoading && activeUsers.length === 0 && <p className="text-sm u-text-muted">No users found.</p>}
+                  <ul className="space-y-3">
+                    {activeUsers.map((user) => (
+                      <li key={user._id} className="rounded-xl border u-border-soft bg-white p-4 shadow-sm transition hover:shadow-md">
+                        {selectedVersion === 'v1' && (
+                          <>
+                            <div className="font-semibold u-text-ink">{user.name}</div>
+                            <div className="text-sm u-text-muted">{user.email}</div>
+                          </>
+                        )}
+                        {selectedVersion === 'v2' && (
+                          <>
+                            <div className="font-semibold u-text-ink">{user.firstName} {user.lastName}</div>
+                            <div className="text-sm u-text-muted">{user.email}</div>
+                          </>
+                        )}
+                        {selectedVersion === 'v3' && (
+                          <>
+                            <div className="font-semibold u-text-ink">{user.fullName}</div>
+                            <div className="text-sm u-text-muted">{user.email}</div>
+                            <div className="mt-1 text-xs u-text-muted">Age: {user.age ?? 'N/A'} | Phone: {user.phone || 'N/A'}</div>
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              )}
+            </section>
+
+            <section className="space-y-8 animate-fade-in-up-delayed-2">
+              <Card title="Version Comparison">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left text-sm">
+                    <thead>
+                      <tr className="border-b u-border-soft">
+                        <th className="py-2 pr-4 u-text-muted">Version</th>
+                        <th className="py-2 pr-4 u-text-muted">Fields</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b u-border-soft">
+                        <td className="py-3 pr-4 font-semibold">v1</td>
+                        <td className="py-3 pr-4">name, email</td>
+                      </tr>
+                      <tr className="border-b u-border-soft">
+                        <td className="py-3 pr-4 font-semibold">v2</td>
+                        <td className="py-3 pr-4">firstName, lastName, email</td>
+                      </tr>
+                      <tr>
+                        <td className="py-3 pr-4 font-semibold">v3</td>
+                        <td className="py-3 pr-4">fullName, email, age, phone</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+
+              {(viewMode === 'raw' || viewMode === 'split') && (
+                <Card title="Raw JSON Responses">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="text-sm u-text-muted">Inspect exact payloads by API version.</div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDownloadRawJson}
+                        disabled={!activeRawResponse}
+                        className="rounded-md u-bg-v2 px-3 py-1.5 text-xs font-semibold u-text-ink transition disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Download JSON
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCopyRawJson}
+                        disabled={!activeRawResponse}
+                        className="rounded-md u-bg-v1 px-3 py-1.5 text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {copiedVersion === rawViewVersion ? 'Copied' : `Copy ${rawViewVersion.toUpperCase()} JSON`}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 grid grid-cols-3 gap-2">
+                    {['v1', 'v2', 'v3'].map((version) => (
+                      <button
+                        key={version}
+                        type="button"
+                        aria-pressed={rawViewVersion === version}
+                        onClick={() => setRawViewVersion(version)}
+                        className={`rounded-lg px-3 py-2 text-sm font-semibold uppercase transition ${
+                          rawViewVersion === version
+                            ? 'u-bg-brand text-white'
+                            : 'u-bg-neutral-soft u-text-muted u-hover-text-ink'
+                        }`}
+                      >
+                        {version}
+                      </button>
+                    ))}
+                  </div>
+
+                  <pre className="max-h-80 overflow-auto rounded-lg u-bg-ink p-4 font-mono text-xs u-text-code whitespace-pre-wrap wrap-break-word">
+                    {activeRawResponse ? JSON.stringify(activeRawResponse, null, 2) : 'No data loaded.'}
+                  </pre>
+                </Card>
+              )}
+            </section>
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
 
 export default App;
+
+
+

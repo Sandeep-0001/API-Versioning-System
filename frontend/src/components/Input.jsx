@@ -3,8 +3,8 @@ import React from 'react';
 const Input = ({ label, name, value, onChange, placeholder, type = 'text', required = false }) => {
   return (
     <div className="mb-4">
-      <label className="block text-dark-green dark:text-cream font-semibold mb-2" htmlFor={name}>
-        {label} {required && <span className="text-terracotta">*</span>}
+      <label className="mb-2 block text-sm font-semibold u-text-ink" htmlFor={name}>
+        {label} {required && <span className="u-text-v1">*</span>}
       </label>
       <input
         type={type}
@@ -14,10 +14,13 @@ const Input = ({ label, name, value, onChange, placeholder, type = 'text', requi
         onChange={onChange}
         placeholder={placeholder}
         required={required}
-        className="w-full px-4 py-3 rounded-lg border-2 border-dark-green/20 dark:border-cream/20 bg-white/50 dark:bg-black/20 text-dark-green dark:text-cream focus:border-terracotta dark:focus:border-terracotta focus:outline-none transition-colors placeholder-dark-green/40 dark:placeholder-cream/40"
+        className="w-full rounded-xl border u-border-soft bg-white px-4 py-3 text-sm u-text-ink outline-none transition u-focus-border-brand focus:ring-2 u-focus-ring-brand-soft u-placeholder-muted"
       />
     </div>
   );
 };
 
 export default Input;
+
+
+
