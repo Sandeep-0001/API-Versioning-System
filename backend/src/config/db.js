@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
-const URL = process.env.MONGO_URI || "mongodb://localhost:27017/local";
 async function connectDb() {
+  const URL = process.env.MONGO_URI || "mongodb://localhost:27017/local";
   if (!URL) {
     return console.error("URL is not provided in enviornment variable");
   }

@@ -1,7 +1,14 @@
 import app from "./src/app.js";
 import dotenv from "dotenv";
 import connectDb from "./src/config/db.js";
-dotenv.config();
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Always load backend/.env even when command is run from workspace root.
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 async function startServer() {
   const PORT = process.env.PORT || 3000;

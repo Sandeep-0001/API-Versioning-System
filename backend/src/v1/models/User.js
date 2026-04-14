@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-}, { timestamps: true });
+}, { timestamps: true, collection: "users_v1" });
 
 const User = mongoose.model("UserV1", userSchema);
 

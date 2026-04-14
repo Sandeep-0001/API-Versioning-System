@@ -5,7 +5,8 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import userRoutesV1 from "./v1/routes/userRoutes.js";
 import userRoutesV2 from "./v2/routes/userRoutes.js";
-import deprecationMiddleware from "./middleware/deprecation.js";
+import userRoutesV3 from "./v3/routes/userRoutes.js";
+import { buildDeprecationMiddleware } from "./middleware/deprecation.js";
 
 const app = express();
 
@@ -27,8 +28,25 @@ app.use(helmet());
 app.use(morgan("dev"));
 app.use(ratelimiter);
 
-app.use("/api/v1/users", deprecationMiddleware, userRoutesV1);
+app.use(
+  "/api/v1/users",
+  buildDeprecationMiddleware({
+    version: "v1",
+    successor: "/api/v3/users",
+    deprecationDate: "2026-04-01T00:00:00.000Z",
+    sunsetDate: "2026-12-31T00:00:00.000Z",
+    hardBlockAfterSunset: false,
+  }),
+  userRoutesV1,
+);
 app.use("/api/v2/users", userRoutesV2);
+app.use("/api/v3/users", userRoutesV3);
+
+// Legacy redirect preserves HTTP method/body using 308.
+app.use("/legacy/users", (req, res) => {
+  const tailPath = req.originalUrl.replace(/^\/legacy\/users/, "") || "";
+  res.redirect(308, `/api/v3/users${tailPath}`);
+});
 
 app.get("/", (req, res) => {
   res.send("Hello world!");

@@ -2,9 +2,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import { translateV1ToV2 } from "../src/utils/translationLayer.js";
-import UserV1 from "../src/v1/models/User.js";
+import { translateV2ToV3 } from "../src/utils/translationLayer.js";
 import UserV2 from "../src/v2/models/User.js";
+import UserV3 from "../src/v3/models/User.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,39 +17,38 @@ async function migrateData() {
     await mongoose.connect(URL);
     console.log("Connected to MongoDB for Migration");
 
-    const v1Users = await UserV1.find();
-    console.log(`Found ${v1Users.length} users in V1 collection.`);
+    const v2Users = await UserV2.find();
+    console.log(`Found ${v2Users.length} users in V2 collection.`);
 
     let migratedCount = 0;
     let skippedCount = 0;
 
-    for (const v1User of v1Users) {
-      // Check if user already exists in V2 by email
-      const existingV2User = await UserV2.findOne({ email: v1User.email });
-      
-      if (existingV2User) {
-        console.log(`Skipping ${v1User.email} - already exists in V2.`);
+    for (const v2User of v2Users) {
+      const existingV3User = await UserV3.findOne({ email: v2User.email });
+      if (existingV3User) {
+        console.log(`Skipping ${v2User.email} - already exists in V3.`);
         skippedCount++;
         continue;
       }
 
-      // Translate data
-      const v2Data = translateV1ToV2({ name: v1User.name, email: v1User.email });
-      
-      // Create V2 User
-      const newV2User = new UserV2(v2Data);
-      await newV2User.save();
-      console.log(`Migrated ${v1User.email} to V2.`);
+      const v3Data = translateV2ToV3({
+        firstName: v2User.firstName,
+        lastName: v2User.lastName,
+        email: v2User.email,
+      });
+
+      const newV3User = new UserV3({ ...v3Data, sourceVersion: "v2" });
+      await newV3User.save();
+      console.log(`Migrated ${v2User.email} to V3.`);
       migratedCount++;
     }
 
-    console.log(`\nMigration Complete.`);
-    console.log(`Total V1 Users: ${v1Users.length}`);
+    console.log("\nMigration Complete.");
+    console.log(`Total V2 Users: ${v2Users.length}`);
     console.log(`Migrated: ${migratedCount}`);
     console.log(`Skipped: ${skippedCount}`);
 
     process.exit(0);
-
   } catch (error) {
     console.error("Migration Error:", error);
     process.exit(1);
